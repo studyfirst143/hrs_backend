@@ -119,6 +119,9 @@ export const declineReservation = async (req: Request, res: Response) => {
     reservation.status = "cancelled";
     await reservation.save();
 
+    // MAKE ROOM AVAILABLE AGAIN
+    await Room.findByIdAndUpdate(reservation.roomId, { status: "available" });
+
     res.status(200).json({ message: "Reservation declined" });
   } catch (error) {
     res.status(500).json({ message: "Failed to decline reservation" });
@@ -164,11 +167,14 @@ export const checkoutReservation = async (req: Request, res: Response) => {
 ====================================================== */
 export const deleteReservation = async (req: Request, res: Response) => {
   try {
-    const reservation = await Reservation.findByIdAndDelete(req.params.id);
+    const reservation = await Reservation.findById(req.params.id);
     if (!reservation) return res.status(404).json({ message: "Reservation not found" });
 
-  await Room.findByIdAndUpdate(reservation.roomId, { status: "available" });
-  
+    // MAKE ROOM AVAILABLE AGAIN
+    await Room.findByIdAndUpdate(reservation.roomId, { status: "available" });
+
+    await reservation.deleteOne();
+
     res.json({ message: "Reservation deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete reservation", error });
